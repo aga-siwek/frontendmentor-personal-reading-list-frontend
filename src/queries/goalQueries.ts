@@ -5,5 +5,6 @@ export const useGoal = (year: number) => {
   return useQuery({
     queryKey: ['goal', year],
     queryFn: () => getGoal(year),
+    retry: false,
   })
 }

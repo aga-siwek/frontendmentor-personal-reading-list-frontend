@@ -11,6 +11,7 @@ export const mockGoal: ReadingGoal = {
   user_id: 1,
   year: 2026,
   goal: 24,
+  books_finished: 1,
 }
 
 export const mockBooks: BookWithUserBook[] = [
