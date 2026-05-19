@@ -599,20 +599,14 @@ export const mockSearchResults: SearchResult[] = [
 ]
 
 export const mockShelves: Shelf[] = [
-  {
-    id: 1,
-    user_id: 1,
-    name: 'From Pawel',
-    position: 0,
-    is_default: false,
-    books: ['9780593135204', '9780756404741'],
-  },
-  {
-    id: 2,
-    user_id: 1,
-    name: 'Wakacje 2026',
-    position: 1,
-    is_default: false,
-    books: ['9780525559474', '9780316556347'],
-  },
+  { id: 1, user_id: 1, name: 'From Pawel', position: 0, is_default: false, books: ['9780593135204', '9780756404741'] },
+  { id: 2, user_id: 1, name: 'Wakacje 2026', position: 1, is_default: false, books: ['9780525559474', '9780316556347'] },
+  { id: 3, user_id: 1, name: 'Classics', position: 2, is_default: false, books: ['9780451524935', '9780743273565'] },
+  { id: 4, user_id: 1, name: 'Science Fiction', position: 3, is_default: false, books: ['9780593135204', '9780345391803', '9780441013593'] },
+  { id: 5, user_id: 1, name: 'Self Development', position: 4, is_default: false, books: ['9781455586691', '9780735211292'] },
+  { id: 6, user_id: 1, name: 'To Read in 2027', position: 5, is_default: false, books: ['9780441013593', '9780525559474'] },
+  { id: 7, user_id: 1, name: 'Favourites of All Time', position: 6, is_default: false, books: ['9780316556347', '9780374275631', '9780062316110'] },
+  { id: 8, user_id: 1, name: 'Fantasy', position: 7, is_default: false, books: ['9780756404741', '9780618002221'] },
+  { id: 9, user_id: 1, name: 'Book Club', position: 8, is_default: false, books: ['9780812993547', '9781250301697'] },
+  { id: 10, user_id: 1, name: 'Short Reads', position: 9, is_default: false, books: ['9780743273565', '9780062316097', '9780345391803'] },
 ]

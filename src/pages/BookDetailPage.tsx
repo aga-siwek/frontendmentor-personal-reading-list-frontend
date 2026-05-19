@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Heart, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Heart, CheckCircle2, BookmarkPlus } from 'lucide-react'
 import { useBook, useUpdateUserBook, useAddReadingProgress } from '@/queries/booksQueries'
+import { useMyShelves, useAddBookToShelf, useRemoveBookFromShelf, useCreateShelf } from '@/queries/shelvesQueries'
 import { Skeleton } from '@/components/ui/skeleton'
 import BookProgress from '@/components/books/BookProgress'
 import StarRating from '@/components/books/StarRating'
@@ -31,6 +32,155 @@ const LoadingSkeleton = () => (
     </div>
   </div>
 )
+
+const SHELF_PAGE = 5
+
+const ShelfSelector = ({ isbn }: { isbn: string }) => {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const [visible, setVisible] = useState(SHELF_PAGE)
+  const [newName, setNewName] = useState('')
+  const [addingNew, setAddingNew] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const { data: shelves = [] } = useMyShelves()
+  const { mutate: addBook } = useAddBookToShelf()
+  const { mutate: removeBook } = useRemoveBookFromShelf()
+  const { mutate: createShelf } = useCreateShelf()
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    if (open) document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const filtered = search.trim()
+    ? shelves.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
+    : shelves
+
+  const handleToggleShelf = (shelfId: number, isOn: boolean) => {
+    if (isOn) removeBook({ shelfId, isbn })
+    else addBook({ shelfId, isbn })
+  }
+
+  const handleCreate = () => {
+    const name = newName.trim()
+    if (!name) return
+    createShelf(name, {
+      onSuccess: (shelf) => {
+        addBook({ shelfId: shelf.id, isbn })
+        setNewName('')
+        setAddingNew(false)
+      },
+    })
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1.5 px-4 py-2 text-sm border border-warm-border rounded-lg text-warm-muted hover:border-brand hover:text-brand transition-colors"
+      >
+        <BookmarkPlus size={15} />
+        Add to shelf
+      </button>
+
+      {open && (
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setOpen(false)} />
+
+          {/* Panel — bottom sheet on mobile, centered modal on desktop */}
+          <div className="
+            fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl flex flex-col max-h-[80vh]
+            md:bottom-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:right-auto md:w-80 md:rounded-xl md:max-h-[70vh] md:shadow-xl md:border md:border-warm-border
+          ">
+            {/* Mobile handle + header */}
+            <div className="md:hidden flex flex-col items-center pt-3 pb-2 border-b border-warm-border">
+              <div className="w-10 h-1 bg-warm-border rounded-full mb-3" />
+              <p className="text-sm font-semibold text-warm-text">Add to shelf</p>
+            </div>
+
+            {/* Search */}
+            <div className="px-3 py-2 border-b border-warm-border">
+              <input
+                type="text"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setVisible(SHELF_PAGE) }}
+                placeholder="Search shelves..."
+                autoFocus
+                className="w-full text-sm text-warm-text placeholder:text-warm-muted bg-transparent outline-none"
+              />
+            </div>
+
+            {/* List */}
+            <div className="overflow-y-auto flex-1">
+              {filtered.length === 0 && (
+                <p className="px-4 py-3 text-sm text-warm-muted">No shelves found.</p>
+              )}
+              {filtered.slice(0, visible).map(shelf => {
+                const isOn = shelf.books.includes(isbn)
+                return (
+                  <button
+                    key={shelf.id}
+                    onClick={() => handleToggleShelf(shelf.id, isOn)}
+                    className="flex items-center justify-between w-full px-4 py-3 text-sm text-warm-text hover:bg-brand-light transition-colors"
+                  >
+                    <span className="truncate">{shelf.name}</span>
+                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ml-2 ${isOn ? 'bg-brand border-brand' : 'border-warm-border'}`}>
+                      {isOn && <CheckCircle2 size={12} className="text-white" />}
+                    </span>
+                  </button>
+                )
+              })}
+              {filtered.length > visible && (
+                <button
+                  onClick={() => setVisible(v => v + SHELF_PAGE)}
+                  className="w-full px-4 py-2.5 text-xs text-warm-muted hover:text-brand transition-colors text-left border-t border-warm-border/50"
+                >
+                  Load more ({filtered.length - visible} more)
+                </button>
+              )}
+            </div>
+
+            {/* New shelf */}
+            <div className="border-t border-warm-border">
+              {addingNew ? (
+                <div className="px-3 py-3 space-y-2">
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={e => setNewName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setAddingNew(false) }}
+                    autoFocus
+                    placeholder="Shelf name"
+                    className="w-full text-sm border border-warm-border rounded-md px-2.5 py-1.5 text-warm-text bg-transparent outline-none focus:border-brand transition-colors"
+                  />
+                  <div className="flex gap-3">
+                    <button onClick={() => setAddingNew(false)} className="text-xs text-warm-muted hover:text-warm-text transition-colors">Cancel</button>
+                    <button onClick={handleCreate} className="text-xs text-brand font-medium hover:text-brand-dark transition-colors">Create & add</button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAddingNew(true)}
+                  className="w-full px-4 py-3 text-sm text-brand hover:bg-brand-light transition-colors text-left"
+                >
+                  + New shelf
+                </button>
+              )}
+            </div>
+
+            {/* Mobile safe area */}
+            <div className="md:hidden h-6" />
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 interface PageInputProps {
   isbn: string
@@ -220,7 +370,7 @@ const BookDetailPage = () => {
           )}
 
           {/* Action buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {user_book.status === 'want_to_read' && (
               <button
                 onClick={() => updateBook({ isbn: book.isbn, data: { status: 'currently_reading', current_page: 0 } })}
@@ -237,6 +387,7 @@ const BookDetailPage = () => {
                 Read Again
               </button>
             )}
+            <ShelfSelector isbn={book.isbn} />
           </div>
         </div>
       </div>

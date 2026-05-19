@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { BookOpen, Bookmark, Check, Star, Library, Plus } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
 import NavItem from './NavItem'
 import ReadingGoal from './ReadingGoal'
 import { useMyBooks } from '@/queries/booksQueries'
-import { useMyShelves } from '@/queries/shelvesQueries'
+import { useMyShelves, useCreateShelf } from '@/queries/shelvesQueries'
 
 const SHELVES_LIMIT = 5
 
@@ -13,6 +12,17 @@ const Sidebar = () => {
   const { data: shelves = [] } = useMyShelves()
   const [showAll, setShowAll] = useState(false)
   const [shelfSearch, setShelfSearch] = useState('')
+  const [addingShelf, setAddingShelf] = useState(false)
+  const [newShelfName, setNewShelfName] = useState('')
+  const { mutate: createShelf } = useCreateShelf()
+
+  const handleCreateShelf = () => {
+    const name = newShelfName.trim()
+    if (!name) return
+    createShelf(name, {
+      onSuccess: () => { setNewShelfName(''); setAddingShelf(false) },
+    })
+  }
 
   const filteredShelves = shelfSearch.trim()
     ? shelves.filter(s => s.name.toLowerCase().includes(shelfSearch.toLowerCase()))
@@ -88,13 +98,31 @@ const Sidebar = () => {
         )}
 
         <div className="mt-3 px-4">
-          <NavLink
-            to="/shelves/new"
-            className="flex items-center gap-2 text-xs text-warm-muted hover:text-brand transition-colors py-1"
-          >
-            <Plus size={14} />
-            Add shelf
-          </NavLink>
+          {addingShelf ? (
+            <div className="space-y-1.5">
+              <input
+                type="text"
+                value={newShelfName}
+                onChange={e => setNewShelfName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleCreateShelf(); if (e.key === 'Escape') setAddingShelf(false) }}
+                autoFocus
+                placeholder="Shelf name"
+                className="w-full text-sm border border-warm-border rounded-lg px-2.5 py-1.5 text-warm-text bg-transparent outline-none focus:border-brand transition-colors"
+              />
+              <div className="flex gap-3">
+                <button onClick={() => setAddingShelf(false)} className="text-xs text-warm-muted hover:text-warm-text transition-colors">Cancel</button>
+                <button onClick={handleCreateShelf} className="text-xs text-brand font-medium hover:text-brand-dark transition-colors">Save</button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAddingShelf(true)}
+              className="flex items-center gap-2 text-xs text-warm-muted hover:text-brand transition-colors py-1"
+            >
+              <Plus size={14} />
+              Add shelf
+            </button>
+          )}
         </div>
       </nav>
 

@@ -12,7 +12,8 @@ export const getShelf = async (id: number): Promise<Shelf> => {
 }
 
 export const createShelf = async (name: string): Promise<Shelf> => {
-  return {
+  // TODO: return axiosClient.post('/shelves/', { name }).then(r => r.data)
+  const shelf: Shelf = {
     id: Date.now(),
     user_id: 1,
     name,
@@ -20,6 +21,8 @@ export const createShelf = async (name: string): Promise<Shelf> => {
     is_default: false,
     books: [],
   }
+  mockShelves.push(shelf)
+  return shelf
 }
 
 export const updateShelf = async (id: number, data: Partial<Pick<Shelf, 'name' | 'position'>>): Promise<Shelf> => {
