@@ -126,12 +126,12 @@ const ShelfSelector = ({ isbn }: { isbn: string }) => {
                   <button
                     key={shelf.id}
                     onClick={() => handleToggleShelf(shelf.id, isOn)}
-                    className="flex items-center justify-between w-full px-4 py-3 text-sm text-warm-text hover:bg-brand-light transition-colors"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-warm-text hover:bg-brand-light transition-colors"
                   >
-                    <span className="truncate">{shelf.name}</span>
-                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ml-2 ${isOn ? 'bg-brand border-brand' : 'border-warm-border'}`}>
-                      {isOn && <CheckCircle2 size={12} className="text-white" />}
+                    <span className={`w-6 h-6 md:w-5 md:h-5 rounded border-2 flex items-center justify-center shrink-0 ${isOn ? 'bg-brand border-brand' : 'border-warm-border'}`}>
+                      {isOn && <CheckCircle2 size={14} className="text-white" />}
                     </span>
+                    <span className="truncate">{shelf.name}</span>
                   </button>
                 )
               })}
