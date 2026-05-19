@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BookOpen, Bookmark, Check, Star, Library, Plus } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import NavItem from './NavItem'
@@ -5,9 +6,17 @@ import ReadingGoal from './ReadingGoal'
 import { useMyBooks } from '@/queries/booksQueries'
 import { useMyShelves } from '@/queries/shelvesQueries'
 
+const SHELVES_LIMIT = 5
+
 const Sidebar = () => {
   const { data: allBooks = [] } = useMyBooks()
   const { data: shelves = [] } = useMyShelves()
+  const [showAll, setShowAll] = useState(false)
+  const [shelfSearch, setShelfSearch] = useState('')
+
+  const filteredShelves = shelfSearch.trim()
+    ? shelves.filter(s => s.name.toLowerCase().includes(shelfSearch.toLowerCase()))
+    : shelves
 
   const counts = {
     all: allBooks.length,
@@ -31,6 +40,8 @@ const Sidebar = () => {
           <Library size={14} className="text-warm-muted shrink-0" />
           <input
             type="text"
+            value={shelfSearch}
+            onChange={e => { setShelfSearch(e.target.value); setShowAll(true) }}
             placeholder="Search shelves..."
             className="text-sm text-warm-text placeholder:text-warm-muted bg-transparent outline-none w-full"
           />
@@ -55,7 +66,7 @@ const Sidebar = () => {
               My Shelves
             </p>
             <div className="space-y-0.5 pr-2">
-              {shelves.map(shelf => (
+              {(showAll ? filteredShelves : filteredShelves.slice(0, SHELVES_LIMIT)).map(shelf => (
                 <NavItem
                   key={shelf.id}
                   to={`/shelves/${shelf.id}`}
@@ -65,6 +76,14 @@ const Sidebar = () => {
                 />
               ))}
             </div>
+            {!shelfSearch && filteredShelves.length > SHELVES_LIMIT && (
+              <button
+                onClick={() => setShowAll(v => !v)}
+                className="mt-1 px-5 text-xs text-warm-muted hover:text-brand transition-colors"
+              >
+                {showAll ? 'Show less' : `${shelves.length - SHELVES_LIMIT} more...`}
+              </button>
+            )}
           </div>
         )}
 
