@@ -1,60 +1,92 @@
 import { useState, useRef, useEffect } from 'react'
-import { NavLink, useLocation, Link } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { BookOpen, BookMarked, Target, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useGoal } from '@/queries/goalQueries'
+import { useGoal, useSetGoal } from '@/queries/goalQueries'
 
-const GoalPanel = ({ onClose }: { onClose: () => void }) => {
+const GoalPanel = ({ onClose: _onClose }: { onClose: () => void }) => {
   const year = new Date().getFullYear()
   const { data: goal, isLoading, isError } = useGoal(year)
+  const { mutate: saveGoal } = useSetGoal()
+
+  const [editing, setEditing] = useState(false)
+  const [input, setInput] = useState('')
+
+  const handleSave = () => {
+    const value = parseInt(input)
+    if (!isNaN(value) && value > 0) {
+      saveGoal({ year, goal: value })
+      setEditing(false)
+    }
+  }
+
+  const handleStart = () => {
+    setInput(String(goal?.goal ?? ''))
+    setEditing(true)
+  }
+
+  if (isLoading) return <div className="px-5 py-4"><p className="text-sm text-warm-muted">Loading...</p></div>
+
+  const percentage = goal ? Math.round((goal.books_finished / goal.goal) * 100) : 0
 
   return (
     <div className="px-5 py-4">
-      <p className="text-xs font-semibold uppercase tracking-widest text-warm-muted mb-3">
-        Reading Goal {year}
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-warm-muted">
+          Reading Goal {year}
+        </p>
+        {!editing && (
+          <button onClick={handleStart} className="text-xs text-warm-muted hover:text-brand transition-colors">
+            {isError || !goal ? 'Add goal' : 'Edit'}
+          </button>
+        )}
+      </div>
 
-      {isLoading && (
-        <p className="text-sm text-warm-muted">Loading...</p>
-      )}
-
-      {(isError || (!isLoading && !goal)) && (
-        <div>
-          <p className="text-sm text-warm-muted mb-2">No goal set for this year.</p>
-          <Link
-            to="/settings"
-            onClick={onClose}
-            className="text-sm text-brand hover:underline"
-          >
-            Add goal for {year}
-          </Link>
+      {editing ? (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false) }}
+              autoFocus
+              min={1}
+              placeholder="books"
+              className="w-20 text-sm border border-warm-border rounded-lg px-2.5 py-1.5 text-warm-text bg-transparent outline-none focus:border-brand transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <span className="text-sm text-warm-muted">books in {year}</span>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => setEditing(false)} className="text-sm text-warm-muted hover:text-warm-text transition-colors">
+              Cancel
+            </button>
+            <button onClick={handleSave} className="text-sm text-brand hover:text-brand-dark transition-colors font-medium">
+              Save
+            </button>
+          </div>
         </div>
+      ) : isError || !goal ? (
+        <p className="text-sm text-warm-muted">No goal set for this year.</p>
+      ) : (
+        <>
+          <div className="flex items-baseline justify-between mb-2">
+            <span className="text-sm text-warm-muted">
+              {goal.books_finished} / {goal.goal} books
+            </span>
+            <span className="text-sm font-medium text-brand">{percentage}%</span>
+          </div>
+          <div className="h-2 bg-warm-border rounded-full overflow-hidden mb-2">
+            <div
+              className="h-full bg-brand rounded-full transition-all"
+              style={{ width: `${Math.min(percentage, 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-warm-muted">
+            {goal.goal - goal.books_finished > 0 ? `${goal.goal - goal.books_finished} books to go` : 'Goal reached!'}
+          </p>
+        </>
       )}
-
-      {goal && (() => {
-        const percentage = Math.round((goal.books_finished / goal.goal) * 100)
-        const booksLeft = goal.goal - goal.books_finished
-        return (
-          <>
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="text-2xl font-bold text-warm-text">
-                {goal.books_finished}
-                <span className="text-base font-normal text-warm-muted"> / {goal.goal} books</span>
-              </span>
-              <span className="text-sm font-medium text-brand">{percentage}%</span>
-            </div>
-            <div className="h-2 bg-warm-border rounded-full overflow-hidden mb-2">
-              <div
-                className="h-full bg-brand rounded-full transition-all"
-                style={{ width: `${Math.min(percentage, 100)}%` }}
-              />
-            </div>
-            <p className="text-xs text-warm-muted">
-              {booksLeft > 0 ? `${booksLeft} books to go` : 'Goal reached!'}
-            </p>
-          </>
-        )
-      })()}
     </div>
   )
 }
