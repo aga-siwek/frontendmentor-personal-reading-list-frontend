@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import type { BookWithUserBook } from '@/types'
 import BookProgress from './BookProgress'
 import StarRating from './StarRating'
+import { useUpdateUserBook } from '@/queries/booksQueries'
 
 interface BookCardProps {
   book: BookWithUserBook
@@ -13,6 +15,7 @@ const formatMonth = (dateStr: string): string => {
 
 const BookCard = ({ book }: BookCardProps) => {
   const navigate = useNavigate()
+  const { mutate: updateBook } = useUpdateUserBook()
   const { user_book } = book
 
   return (
@@ -45,6 +48,19 @@ const BookCard = ({ book }: BookCardProps) => {
         </div>
 
         <div className="mt-4">
+          {user_book.status === 'want_to_read' && (
+            <button
+              onClick={e => {
+                e.stopPropagation()
+                updateBook({ isbn: book.isbn, data: { status: 'currently_reading', current_page: 0 } })
+                toast.success('Moved to Currently Reading')
+              }}
+              className="text-xs text-warm-muted hover:text-brand transition-colors"
+            >
+              Start Reading
+            </button>
+          )}
+
           {user_book.status === 'currently_reading' && (
             <BookProgress percentage={user_book.percentage} />
           )}

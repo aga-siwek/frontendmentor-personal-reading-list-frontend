@@ -207,7 +207,14 @@ const BookDetailPage = () => {
           {/* Rating — finished */}
           {user_book.status === 'finished' && (
             <div className="mb-5 space-y-1">
-              <p className="text-xs text-warm-muted">Your rating</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-warm-muted">Your rating</p>
+                {user_book.last_updated && (
+                  <p className="text-xs text-warm-muted">
+                    Finished {new Date(user_book.last_updated).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                )}
+              </div>
               <StarRating isbn={book.isbn} rating={user_book.rating} size={20} />
             </div>
           )}

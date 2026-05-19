@@ -104,12 +104,12 @@ const Header = () => {
       {/* ===== MOBILE ===== */}
       <div className="md:hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-warm-border bg-main">
-          <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/')} className="flex items-center gap-2">
             <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center shrink-0">
               <BookOpen size={14} className="text-white" />
             </div>
             <span className="font-semibold text-warm-text">Bookshelf</span>
-          </div>
+          </button>
 
           <div className="flex items-center gap-3">
             <button
