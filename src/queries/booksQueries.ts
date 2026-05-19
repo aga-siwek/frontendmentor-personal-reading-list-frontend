@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { BookStatus, ShelfParam, UserBook } from '@/types'
+import type { BookStatus, BookWithUserBook, ShelfParam, UserBook } from '@/types'
 import {
   getMyBooks,
   getBook,
@@ -65,8 +65,33 @@ export const useUpdateUserBook = () => {
       isbn: string
       data: Partial<Pick<UserBook, 'status' | 'current_page' | 'notes' | 'rating' | 'is_favourite'>>
     }) => updateUserBook(isbn, data),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['books', variables.isbn] })
+
+    onMutate: async ({ isbn, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['books'] })
+
+      const previousQueries = queryClient.getQueriesData<BookWithUserBook[]>({ queryKey: ['books'] })
+
+      queryClient.setQueriesData<BookWithUserBook[]>(
+        { queryKey: ['books'] },
+        old => Array.isArray(old)
+          ? old.map(b => b.isbn === isbn ? { ...b, user_book: { ...b.user_book, ...data } } : b)
+          : old
+      )
+
+      queryClient.setQueryData<BookWithUserBook>(['books', isbn], old =>
+        old ? { ...old, user_book: { ...old.user_book, ...data } } : old
+      )
+
+      return { previousQueries }
+    },
+
+    onError: (_err, _vars, context) => {
+      context?.previousQueries.forEach(([key, value]) => {
+        queryClient.setQueryData(key, value)
+      })
+    },
+
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] })
     },
   })

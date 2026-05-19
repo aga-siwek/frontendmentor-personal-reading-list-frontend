@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Settings, LogOut } from 'lucide-react'
+import { Search, Settings, LogOut, BookOpen, X } from 'lucide-react'
 import { useSearchBooks } from '@/queries/booksQueries'
 import { useCurrentUser } from '@/queries/authQueries'
 import { useDebounce } from '@/lib/useDebounce'
@@ -17,12 +17,56 @@ const getInitials = (name: string | null, email: string): string => {
   return email[0].toUpperCase()
 }
 
+const SearchResults = ({
+  results,
+  onSelect,
+}: {
+  results: ReturnType<typeof useSearchBooks>['data']
+  onSelect: (isbn: string) => void
+}) => (
+  <div className="absolute top-full mt-1 w-full bg-white border border-warm-border rounded-lg shadow-lg z-50 overflow-hidden">
+    {!results || results.length === 0 ? (
+      <p className="px-4 py-3 text-sm text-warm-muted">No results found</p>
+    ) : (
+      <ul>
+        {results.map(book => (
+          <li key={book.isbn}>
+            <button
+              onClick={() => onSelect(book.isbn)}
+              className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-brand-light transition-colors text-left"
+            >
+              {book.cover.small ? (
+                <img
+                  src={book.cover.small}
+                  alt={book.title}
+                  className="w-8 h-11 object-cover rounded shrink-0"
+                />
+              ) : (
+                <div className="w-8 h-11 bg-warm-border rounded shrink-0" />
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-warm-text truncate">{book.title}</p>
+                <p className="text-xs text-warm-muted truncate">{book.author}</p>
+                {book.first_publish_year && (
+                  <p className="text-xs text-warm-muted">{book.first_publish_year}</p>
+                )}
+              </div>
+            </button>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+)
+
 const Header = () => {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const searchRef = useRef<HTMLDivElement>(null)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  const desktopSearchRef = useRef<HTMLDivElement>(null)
+  const mobileSearchRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const debouncedQuery = useDebounce(query, 500)
@@ -31,12 +75,10 @@ const Header = () => {
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false)
-      }
+      const inDesktop = desktopSearchRef.current?.contains(e.target as Node)
+      const inMobile = mobileSearchRef.current?.contains(e.target as Node)
+      if (!inDesktop && !inMobile) setOpen(false)
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
@@ -45,6 +87,7 @@ const Header = () => {
   const handleSelect = (isbn: string) => {
     setQuery('')
     setOpen(false)
+    setMobileSearchOpen(false)
     navigate(`/books/${isbn}`)
   }
 
@@ -53,87 +96,129 @@ const Header = () => {
     navigate('/login')
   }
 
+  const initials = user ? getInitials(user.user_name, user.user_email) : '?'
+  const showResults = open && debouncedQuery.length >= 2
+
   return (
-    <header className="flex items-center justify-end gap-4 px-8 py-3 border-b border-warm-border bg-main">
-      <div ref={searchRef} className="relative w-80">
-        <div className="flex items-center gap-2 bg-white border border-warm-border rounded-lg px-3 py-2">
-          <Search size={15} className="text-warm-muted shrink-0" />
-          <input
-            type="text"
-            value={query}
-            onChange={e => {
-              setQuery(e.target.value)
-              setOpen(true)
-            }}
-            onFocus={() => setOpen(true)}
-            placeholder="Search books..."
-            className="text-sm text-warm-text placeholder:text-warm-muted bg-transparent outline-none w-full"
-          />
+    <header>
+      {/* ===== MOBILE ===== */}
+      <div className="md:hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-warm-border bg-main">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center shrink-0">
+              <BookOpen size={14} className="text-white" />
+            </div>
+            <span className="font-semibold text-warm-text">Bookshelf</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setMobileSearchOpen(v => !v)
+                setQuery('')
+                setOpen(false)
+              }}
+              className="text-warm-muted hover:text-warm-text transition-colors"
+              aria-label="Search"
+            >
+              {mobileSearchOpen ? <X size={20} /> : <Search size={20} />}
+            </button>
+
+            <div ref={menuRef} className="relative">
+              <button
+                onClick={() => setMenuOpen(v => !v)}
+                className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white text-xs font-semibold hover:bg-brand-dark transition-colors shrink-0"
+              >
+                {initials}
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-44 bg-white border border-warm-border rounded-lg shadow-lg z-50 overflow-hidden">
+                  <button
+                    onClick={() => { navigate('/settings'); setMenuOpen(false) }}
+                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-warm-text hover:bg-brand-light transition-colors"
+                  >
+                    <Settings size={15} className="text-warm-muted" />
+                    Settings
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-warm-text hover:bg-brand-light transition-colors"
+                  >
+                    <LogOut size={15} className="text-warm-muted" />
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {open && debouncedQuery.length >= 2 && (
-          <div className="absolute top-full mt-1 w-full bg-white border border-warm-border rounded-lg shadow-lg z-50 overflow-hidden">
-            {results.length === 0 ? (
-              <p className="px-4 py-3 text-sm text-warm-muted">No results found</p>
-            ) : (
-              <ul>
-                {results.map(book => (
-                  <li key={book.isbn}>
-                    <button
-                      onClick={() => handleSelect(book.isbn)}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-brand-light transition-colors text-left"
-                    >
-                      {book.cover.small ? (
-                        <img
-                          src={book.cover.small}
-                          alt={book.title}
-                          className="w-8 h-11 object-cover rounded shrink-0"
-                        />
-                      ) : (
-                        <div className="w-8 h-11 bg-warm-border rounded shrink-0" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-warm-text truncate">{book.title}</p>
-                        <p className="text-xs text-warm-muted truncate">{book.author}</p>
-                        {book.first_publish_year && (
-                          <p className="text-xs text-warm-muted">{book.first_publish_year}</p>
-                        )}
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+        {mobileSearchOpen && (
+          <div ref={mobileSearchRef} className="relative px-4 py-3 bg-main border-b border-warm-border">
+            <div className="flex items-center gap-2 bg-white border border-warm-border rounded-lg px-3 py-2">
+              <Search size={15} className="text-warm-muted shrink-0" />
+              <input
+                type="text"
+                value={query}
+                onChange={e => { setQuery(e.target.value); setOpen(true) }}
+                onFocus={() => setOpen(true)}
+                placeholder="Search books..."
+                autoFocus
+                className="text-sm text-warm-text placeholder:text-warm-muted bg-transparent outline-none w-full"
+              />
+            </div>
+            {showResults && (
+              <SearchResults results={results} onSelect={handleSelect} />
             )}
           </div>
         )}
       </div>
 
-      <div ref={menuRef} className="relative">
-        <button
-          onClick={() => setMenuOpen(v => !v)}
-          className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white text-sm font-semibold shrink-0 hover:bg-brand-dark transition-colors"
-        >
-          {user ? getInitials(user.user_name, user.user_email) : '?'}
-        </button>
-
-        {menuOpen && (
-          <div className="absolute right-0 top-full mt-2 w-44 bg-white border border-warm-border rounded-lg shadow-lg z-50 overflow-hidden">
-            <button
-              onClick={() => { navigate('/settings'); setMenuOpen(false) }}
-              className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-warm-text hover:bg-brand-light transition-colors"
-            >
-              <Settings size={15} className="text-warm-muted" />
-              Settings
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-warm-text hover:bg-brand-light transition-colors"
-            >
-              <LogOut size={15} className="text-warm-muted" />
-              Log out
-            </button>
+      {/* ===== DESKTOP ===== */}
+      <div className="hidden md:flex items-center justify-end gap-4 px-8 py-3 border-b border-warm-border bg-main">
+        <div ref={desktopSearchRef} className="relative w-80">
+          <div className="flex items-center gap-2 bg-white border border-warm-border rounded-lg px-3 py-2">
+            <Search size={15} className="text-warm-muted shrink-0" />
+            <input
+              type="text"
+              value={query}
+              onChange={e => { setQuery(e.target.value); setOpen(true) }}
+              onFocus={() => setOpen(true)}
+              placeholder="Search books..."
+              className="text-sm text-warm-text placeholder:text-warm-muted bg-transparent outline-none w-full"
+            />
           </div>
-        )}
+          {showResults && (
+            <SearchResults results={results} onSelect={handleSelect} />
+          )}
+        </div>
+
+        <div ref={menuRef} className="relative">
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white text-sm font-semibold shrink-0 hover:bg-brand-dark transition-colors"
+          >
+            {initials}
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-44 bg-white border border-warm-border rounded-lg shadow-lg z-50 overflow-hidden">
+              <button
+                onClick={() => { navigate('/settings'); setMenuOpen(false) }}
+                className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-warm-text hover:bg-brand-light transition-colors"
+              >
+                <Settings size={15} className="text-warm-muted" />
+                Settings
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-warm-text hover:bg-brand-light transition-colors"
+              >
+                <LogOut size={15} className="text-warm-muted" />
+                Log out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )

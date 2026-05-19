@@ -18,7 +18,7 @@ const NavItem = ({ to, icon: Icon, label, count }: NavItemProps) => {
           'flex items-center gap-3 px-4 py-2 text-sm rounded-r-lg border-l-2 transition-colors',
           isActive
             ? 'border-brand text-brand font-medium bg-brand-light'
-            : 'border-transparent text-warm-muted hover:text-warm-text hover:bg-brand-light/40'
+            : 'border-transparent text-warm-muted hover:text-warm-text hover:bg-brand-light hover:border-brand/30'
         )
       }
     >
