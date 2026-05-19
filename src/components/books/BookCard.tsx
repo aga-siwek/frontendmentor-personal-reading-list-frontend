@@ -1,9 +1,7 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Star } from 'lucide-react'
 import type { BookWithUserBook } from '@/types'
 import BookProgress from './BookProgress'
-import { useUpdateUserBook } from '@/queries/booksQueries'
+import StarRating from './StarRating'
 
 interface BookCardProps {
   book: BookWithUserBook
@@ -11,47 +9,6 @@ interface BookCardProps {
 
 const formatMonth = (dateStr: string): string => {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-}
-
-const StarRating = ({ isbn, rating }: { isbn: string; rating: number | null }) => {
-  const [hovered, setHovered] = useState<number | null>(null)
-  const { mutate: updateBook } = useUpdateUserBook()
-
-  const handleRate = (e: React.MouseEvent, value: number) => {
-    e.stopPropagation()
-    updateBook({ isbn, data: { rating: value } })
-  }
-
-  const active = hovered ?? rating ?? 0
-
-  return (
-    <div
-      className="flex gap-0.5"
-      onMouseLeave={() => setHovered(null)}
-    >
-      {Array.from({ length: 5 }).map((_, i) => {
-        const value = i + 1
-        return (
-          <button
-            key={i}
-            onClick={e => handleRate(e, value)}
-            onMouseEnter={() => setHovered(value)}
-            className="transition-transform hover:scale-110"
-            aria-label={`Rate ${value} stars`}
-          >
-            <Star
-              size={14}
-              className={
-                value <= active
-                  ? 'text-brand fill-brand'
-                  : 'text-warm-border fill-warm-border'
-              }
-            />
-          </button>
-        )
-      })}
-    </div>
-  )
 }
 
 const BookCard = ({ book }: BookCardProps) => {
@@ -65,11 +22,7 @@ const BookCard = ({ book }: BookCardProps) => {
     >
       <div className="w-28 h-full shrink-0 bg-warm-border">
         {book.cover.medium ? (
-          <img
-            src={book.cover.medium}
-            alt={book.title}
-            className="w-full h-full object-cover"
-          />
+          <img src={book.cover.medium} alt={book.title} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-warm-muted text-xs px-2 text-center">
             No cover

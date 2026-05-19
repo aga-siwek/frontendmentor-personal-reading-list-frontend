@@ -39,6 +39,15 @@ export const addReadingProgress = async (
   currentPage: number
 ): Promise<{ isbn: string; current_page: number; date: string }> => {
   // TODO: return axiosClient.post(`/books/${isbn}/progress/`, { current_page: currentPage }).then(r => r.data)
+  const book = mockBooks.find(b => b.isbn === isbn)
+  if (book) {
+    book.user_book.current_page = currentPage
+    if (book.number_of_pages) {
+      book.user_book.percentage = parseFloat(
+        Math.min((currentPage / book.number_of_pages) * 100, 100).toFixed(1)
+      )
+    }
+  }
   return { isbn, current_page: currentPage, date: new Date().toISOString() }
 }
 

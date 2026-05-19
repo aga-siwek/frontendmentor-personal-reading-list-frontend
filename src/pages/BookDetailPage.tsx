@@ -1,5 +1,307 @@
+import { useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Heart, CheckCircle2 } from 'lucide-react'
+import { useBook, useUpdateUserBook, useAddReadingProgress } from '@/queries/booksQueries'
+import { Skeleton } from '@/components/ui/skeleton'
+import BookProgress from '@/components/books/BookProgress'
+import StarRating from '@/components/books/StarRating'
+
+const STATUS_LABEL: Record<string, string> = {
+  currently_reading: 'Currently Reading',
+  want_to_read: 'Want to Read',
+  finished: 'Read',
+}
+
+const LoadingSkeleton = () => (
+  <div className="px-4 md:px-8 py-6 max-w-4xl mx-auto">
+    <Skeleton className="h-7 w-32 mb-8 hidden md:block" />
+    <div className="flex gap-8">
+      <Skeleton className="hidden md:block w-44 h-64 rounded-xl shrink-0" />
+      <div className="flex-1 space-y-4">
+        <Skeleton className="h-9 w-4/5" />
+        <Skeleton className="h-4 w-1/4" />
+        <div className="flex gap-2">
+          <Skeleton className="h-6 w-24 rounded-full" />
+          <Skeleton className="h-6 w-16 rounded-full" />
+        </div>
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-2 w-full rounded-full" />
+        <Skeleton className="h-10 w-48 rounded-lg" />
+      </div>
+    </div>
+  </div>
+)
+
+interface PageInputProps {
+  isbn: string
+  currentPage: number
+  totalPages?: number
+  onSave: (page: number) => void
+}
+
+const PageInput = ({ isbn: _isbn, currentPage, totalPages, onSave }: PageInputProps) => {
+  const [value, setValue] = useState(String(currentPage ?? 0))
+
+  const handleSave = () => {
+    const page = parseInt(value)
+    if (!isNaN(page) && page >= 0) onSave(page)
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="number"
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && handleSave()}
+        min={0}
+        max={totalPages}
+        className="w-20 text-sm border border-warm-border rounded-lg px-2.5 py-1.5 text-warm-text bg-transparent outline-none focus:border-brand transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+      />
+      {totalPages && (
+        <span className="text-sm text-warm-muted">/ {totalPages}</span>
+      )}
+      <button
+        onClick={handleSave}
+        className="flex-1 md:flex-none px-4 py-1.5 bg-brand text-white text-sm rounded-lg hover:bg-brand-dark transition-colors"
+      >
+        Save
+      </button>
+    </div>
+  )
+}
+
 const BookDetailPage = () => {
-  return <div>Book Detail</div>
+  const { isbn } = useParams<{ isbn: string }>()
+  const navigate = useNavigate()
+  const { data: book, isLoading } = useBook(isbn!)
+  const { mutate: updateBook } = useUpdateUserBook()
+  const { mutate: addProgress } = useAddReadingProgress()
+
+  const [showNotes, setShowNotes] = useState(false)
+  const [noteText, setNoteText] = useState('')
+
+  if (isLoading) return <LoadingSkeleton />
+  if (!book) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-warm-muted text-sm">Book not found.</p>
+      </div>
+    )
+  }
+
+  const { user_book } = book
+  const cover = book.cover.medium || book.cover.small
+
+  const handleToggleNotes = () => {
+    if (!showNotes) setNoteText(user_book.notes ?? '')
+    setShowNotes(v => !v)
+  }
+
+  const handleSaveNotes = () => {
+    updateBook({ isbn: book.isbn, data: { notes: noteText } })
+    setShowNotes(false)
+  }
+
+  return (
+    <div className="px-4 md:px-8 py-6 max-w-4xl mx-auto">
+
+      {/* Back / header */}
+      <button
+        onClick={() => navigate(-1)}
+        className="md:hidden flex items-center gap-1.5 text-sm text-warm-muted hover:text-warm-text transition-colors mb-5"
+      >
+        <ArrowLeft size={16} />
+        Back
+      </button>
+      <h1 className="hidden md:block text-2xl font-semibold text-warm-text mb-8">
+        Book Details
+      </h1>
+
+      {/* ── HERO ROW ── */}
+      <div className="flex flex-col min-[570px]:flex-row gap-5 md:gap-8 mb-8">
+
+        {/* Cover */}
+        <div className="flex justify-center min-[570px]:block min-[570px]:w-28 min-[570px]:shrink-0 min-[570px]:self-start md:w-44">
+          <div className="w-36 min-[570px]:w-full">
+            {cover ? (
+              <img
+                src={cover}
+                alt={book.title}
+                className="w-full rounded-xl shadow-md object-cover"
+              />
+            ) : (
+              <div className="w-full aspect-[2/3] rounded-xl bg-warm-border flex items-center justify-center text-warm-muted text-xs text-center px-2">
+                No cover
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Title + meta + actions */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-4 mb-1">
+            <h2 className="text-xl min-[570px]:text-2xl md:text-3xl font-bold text-warm-text leading-snug">
+              {book.title}
+            </h2>
+            <div className="relative group shrink-0 mt-1">
+              <button
+                onClick={() => updateBook({ isbn: book.isbn, data: { is_favourite: !user_book.is_favourite } })}
+                aria-label={user_book.is_favourite ? 'Remove from favourites' : 'Add to favourites'}
+                className="p-2 -m-2 md:p-0 md:m-0"
+              >
+                <Heart
+                  size={26}
+                  className={`transition-colors ${
+                    user_book.is_favourite
+                      ? 'fill-brand text-brand'
+                      : 'text-warm-border hover:text-brand'
+                  }`}
+                />
+              </button>
+              <span className="pointer-events-none absolute right-0 top-7 text-xs bg-warm-text text-white rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                {user_book.is_favourite ? 'In favourites' : 'Add to favourites'}
+              </span>
+            </div>
+          </div>
+          <p className="text-warm-muted mb-4">By {book.author}</p>
+
+          {/* Badges */}
+          <div className="flex flex-wrap gap-2 mb-5">
+            <span className="text-xs font-medium text-brand bg-brand-light rounded-full px-3 py-1">
+              {STATUS_LABEL[user_book.status] ?? user_book.status}
+            </span>
+            {book.categories.map(cat => (
+              <span key={cat.id} className="text-xs text-warm-muted bg-warm-border/60 rounded-full px-3 py-1">
+                {cat.name}
+              </span>
+            ))}
+          </div>
+
+          {/* Progress — currently reading */}
+          {user_book.status === 'currently_reading' && (
+            <div className="mb-5 space-y-2">
+              <BookProgress percentage={user_book.percentage} />
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-warm-muted">
+                  {user_book.percentage ?? 0}% · page {user_book.current_page}
+                  {book.number_of_pages ? ` of ${book.number_of_pages}` : ''}
+                </p>
+                <button
+                  onClick={() => updateBook({ isbn: book.isbn, data: { status: 'finished' } })}
+                  className="flex items-center gap-1 text-xs text-warm-muted hover:text-brand transition-colors"
+                >
+                  <CheckCircle2 size={13} />
+                  Mark as finished
+                </button>
+              </div>
+              <PageInput
+                isbn={book.isbn}
+                currentPage={user_book.current_page ?? 0}
+                totalPages={book.number_of_pages ?? undefined}
+                onSave={page => addProgress({ isbn: book.isbn, currentPage: page })}
+              />
+            </div>
+          )}
+
+          {/* Rating — finished */}
+          {user_book.status === 'finished' && (
+            <div className="mb-5 space-y-1">
+              <p className="text-xs text-warm-muted">Your rating</p>
+              <StarRating isbn={book.isbn} rating={user_book.rating} size={20} />
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-3">
+            {user_book.status === 'want_to_read' && (
+              <button
+                onClick={() => updateBook({ isbn: book.isbn, data: { status: 'currently_reading', current_page: 0 } })}
+                className="w-full min-[570px]:w-auto px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-xl hover:bg-brand-dark transition-colors"
+              >
+                Start Reading
+              </button>
+            )}
+            {user_book.status === 'finished' && (
+              <button
+                onClick={() => updateBook({ isbn: book.isbn, data: { status: 'currently_reading', current_page: 0 } })}
+                className="w-full min-[570px]:w-auto px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-xl hover:bg-brand-dark transition-colors"
+              >
+                Read Again
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── DESCRIPTION ── */}
+      {book.description && (
+        <p className="text-sm text-warm-text/80 leading-relaxed mb-8">
+          {book.description}
+        </p>
+      )}
+
+      {/* ── NOTES ── */}
+      <div className="mb-8">
+        {showNotes ? (
+          <div className="space-y-2">
+            <textarea
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveNotes() } }}
+              placeholder="Write your review or notes about this book..."
+              rows={4}
+              autoFocus
+              className="w-full text-sm border border-warm-border rounded-lg px-3 py-2.5 text-warm-text placeholder:text-warm-muted outline-none focus:border-brand transition-colors resize-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowNotes(false)} className="text-sm text-warm-muted hover:text-warm-text px-3 py-1.5 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleSaveNotes} className="px-4 py-1.5 bg-brand text-white text-sm rounded-lg hover:bg-brand-dark transition-colors">
+                Save
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            onClick={handleToggleNotes}
+            className="group cursor-pointer p-4 rounded-lg border border-warm-border/40 hover:border-brand/40 hover:bg-warm-border/10 transition-colors"
+          >
+            <p className="text-xs font-semibold text-warm-muted uppercase tracking-wide mb-2">Your Review</p>
+            {user_book.notes ? (
+              <p className="text-sm text-warm-text leading-relaxed">{user_book.notes}</p>
+            ) : (
+              <p className="text-sm text-warm-muted italic">Add a review or notes about this book...</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── METADATA ── */}
+      <div className="border-t border-warm-border pt-5 flex flex-wrap gap-x-8 gap-y-3">
+        {book.publish_date && (
+          <div>
+            <p className="text-xs text-warm-muted">Published</p>
+            <p className="text-sm font-medium text-warm-text">{book.publish_date}</p>
+          </div>
+        )}
+        {book.number_of_pages && (
+          <div>
+            <p className="text-xs text-warm-muted">Pages</p>
+            <p className="text-sm font-medium text-warm-text">{book.number_of_pages}</p>
+          </div>
+        )}
+        {book.publisher && (
+          <div>
+            <p className="text-xs text-warm-muted">Publisher</p>
+            <p className="text-sm font-medium text-warm-text">{book.publisher}</p>
+          </div>
+        )}
+      </div>
+
+    </div>
+  )
 }
 
 export default BookDetailPage
