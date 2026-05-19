@@ -26,5 +26,16 @@ export const register = async (
 }
 
 export const getCurrentUser = async (): Promise<User> => {
+  // TODO: return axiosClient.get('/users/me/').then(r => r.data)
   return mockUser
+}
+
+export const updateUser = async (name: string): Promise<User> => {
+  // TODO: return axiosClient.patch('/users/me/', { user_name: name }).then(r => r.data)
+  mockUser.user_name = name
+  return { ...mockUser }
+}
+
+export const deleteAccount = async (): Promise<void> => {
+  // TODO: return axiosClient.delete('/users/me/')
 }

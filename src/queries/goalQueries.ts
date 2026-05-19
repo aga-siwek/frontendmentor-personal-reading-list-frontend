@@ -1,5 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getGoal, setGoal } from '@/api/goalApi'
+import { getGoal, getGoals, setGoal } from '@/api/goalApi'
+
+export const useGoals = () => {
+  return useQuery({
+    queryKey: ['goals'],
+    queryFn: getGoals,
+  })
+}
 
 export const useGoal = (year: number) => {
   return useQuery({
