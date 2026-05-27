@@ -30,6 +30,9 @@ const LoadingSkeleton = () => (
         <Skeleton className="h-10 w-48 rounded-lg" />
       </div>
     </div>
+    <p className="mt-6 text-xs text-warm-muted/70 text-center">
+      Loading book data — powered by free Open Library & Google Books APIs, may take a moment
+    </p>
   </div>
 )
 

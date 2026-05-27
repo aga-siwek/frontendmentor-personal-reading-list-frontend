@@ -1,28 +1,60 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Settings, LogOut, BookOpen, X } from 'lucide-react'
+import { Search, Settings, LogOut, BookOpen, X, Clock } from 'lucide-react'
 import { useSearchBooks } from '@/queries/booksQueries'
 import { useCurrentUser } from '@/queries/authQueries'
 import { useDebounce } from '@/lib/useDebounce'
+import type { SearchResult } from '@/types'
+
+// Session-level cache: stores query + results so we never re-fetch for history items
+type HistoryEntry = { query: string; results: SearchResult[] }
+const sessionHistory: HistoryEntry[] = []
+
+const saveToHistory = (query: string, results: SearchResult[]) => {
+  if (query.length < 2 || results.length === 0) return
+  const idx = sessionHistory.findIndex(h => h.query.toLowerCase() === query.toLowerCase())
+  if (idx !== -1) sessionHistory.splice(idx, 1)
+  sessionHistory.unshift({ query, results })
+  if (sessionHistory.length > 10) sessionHistory.pop()
+}
 
 const getInitials = (name: string | null, email: string): string => {
   if (name) {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
   return email[0].toUpperCase()
 }
+
+// ─── Recent searches list (shown when input is empty) ───────────────────────
+
+const RecentSearches = ({
+  onSelect,
+}: {
+  onSelect: (entry: HistoryEntry) => void
+}) => (
+  <div className="absolute top-full mt-1 w-full bg-white border border-warm-border rounded-lg shadow-lg z-50 overflow-hidden">
+    <p className="px-3 pt-2.5 pb-1 text-xs font-medium text-warm-muted/70 uppercase tracking-wide">Recently searched</p>
+    {sessionHistory.map(entry => (
+      <button
+        key={entry.query}
+        onClick={() => onSelect(entry)}
+        className="flex items-center gap-2 w-full px-3 py-2.5 hover:bg-brand-light transition-colors text-left"
+      >
+        <Clock size={13} className="text-warm-muted shrink-0" />
+        <span className="text-sm text-warm-text truncate">{entry.query}</span>
+      </button>
+    ))}
+  </div>
+)
+
+// ─── Search results list ─────────────────────────────────────────────────────
 
 const SearchResults = ({
   results,
   isLoading,
   onSelect,
 }: {
-  results: ReturnType<typeof useSearchBooks>['data']
+  results: SearchResult[]
   isLoading: boolean
   onSelect: (isbn: string) => void
 }) => (
@@ -30,9 +62,9 @@ const SearchResults = ({
     {isLoading ? (
       <div className="px-4 py-3">
         <p className="text-sm text-warm-muted">Searching...</p>
-        <p className="text-xs text-warm-muted/70 mt-0.5">Fetching from Open Library — may take a moment</p>
+        <p className="text-xs text-warm-muted/70 mt-0.5">Open Library is a free API — results may take up to 10 seconds</p>
       </div>
-    ) : !results || results.length === 0 ? (
+    ) : results.length === 0 ? (
       <p className="px-4 py-3 text-sm text-warm-muted">No results found</p>
     ) : (
       <ul>
@@ -42,9 +74,9 @@ const SearchResults = ({
               onClick={() => onSelect(book.isbn)}
               className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-brand-light transition-colors text-left"
             >
-              {book.cover.small ? (
+              {(book.cover.medium || book.cover.small) ? (
                 <img
-                  src={book.cover.small}
+                  src={(book.cover.medium || book.cover.small)!}
                   alt={book.title}
                   className="w-8 h-11 object-cover rounded shrink-0"
                 />
@@ -66,19 +98,32 @@ const SearchResults = ({
   </div>
 )
 
+// ─── Header ──────────────────────────────────────────────────────────────────
+
 const Header = () => {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  // When true we're showing cached results for a history item — skip API call
+  const [historyMode, setHistoryMode] = useState(false)
+  const [cachedResults, setCachedResults] = useState<SearchResult[]>([])
   const desktopSearchRef = useRef<HTMLDivElement>(null)
   const mobileSearchRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const debouncedQuery = useDebounce(query, 500)
-  const { data: results = [], isFetching } = useSearchBooks(debouncedQuery)
+  // Pass '' when in historyMode so the query hook stays disabled
+  const { data: apiResults = [], isFetching } = useSearchBooks(historyMode ? '' : debouncedQuery)
   const { data: user } = useCurrentUser()
+
+  // Save API results to session cache when they arrive
+  useEffect(() => {
+    if (!historyMode && debouncedQuery.length >= 2 && apiResults.length > 0) {
+      saveToHistory(debouncedQuery, apiResults)
+    }
+  }, [debouncedQuery, apiResults, historyMode])
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -91,8 +136,23 @@ const Header = () => {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  const handleQueryChange = (value: string) => {
+    setQuery(value)
+    setHistoryMode(false)
+    setOpen(true)
+  }
+
+  // Click on a recent search: show cached results, skip API
+  const handleHistorySelect = (entry: HistoryEntry) => {
+    setQuery(entry.query)
+    setCachedResults(entry.results)
+    setHistoryMode(true)
+    setOpen(true)
+  }
+
   const handleSelect = (isbn: string) => {
     setQuery('')
+    setHistoryMode(false)
     setOpen(false)
     setMobileSearchOpen(false)
     navigate(`/books/${isbn}`)
@@ -104,7 +164,31 @@ const Header = () => {
   }
 
   const initials = user ? getInitials(user.user_name, user.user_email) : '?'
-  const showResults = open && debouncedQuery.length >= 2
+
+  const displayResults = historyMode ? cachedResults : apiResults
+  const isLoading = !historyMode && isFetching
+
+  // Which dropdown to show
+  const showRecentSearches = open && query.length === 0 && sessionHistory.length > 0
+  const showResults = open && query.length >= 2
+
+  const searchDropdown = showRecentSearches ? (
+    <RecentSearches onSelect={handleHistorySelect} />
+  ) : showResults ? (
+    <SearchResults results={displayResults} isLoading={isLoading} onSelect={handleSelect} />
+  ) : null
+
+  const searchInput = (onChange: (v: string) => void, extraProps?: React.InputHTMLAttributes<HTMLInputElement>) => (
+    <input
+      type="text"
+      value={query}
+      onChange={e => onChange(e.target.value)}
+      onFocus={() => setOpen(true)}
+      placeholder="Search books..."
+      className="text-sm text-warm-text placeholder:text-warm-muted bg-transparent outline-none w-full"
+      {...extraProps}
+    />
+  )
 
   return (
     <header>
@@ -123,6 +207,7 @@ const Header = () => {
               onClick={() => {
                 setMobileSearchOpen(v => !v)
                 setQuery('')
+                setHistoryMode(false)
                 setOpen(false)
               }}
               className="text-warm-muted hover:text-warm-text transition-colors"
@@ -164,19 +249,9 @@ const Header = () => {
           <div ref={mobileSearchRef} className="relative px-4 py-3 bg-main border-b border-warm-border">
             <div className="flex items-center gap-2 bg-white border border-warm-border rounded-lg px-3 py-2">
               <Search size={15} className="text-warm-muted shrink-0" />
-              <input
-                type="text"
-                value={query}
-                onChange={e => { setQuery(e.target.value); setOpen(true) }}
-                onFocus={() => setOpen(true)}
-                placeholder="Search books..."
-                autoFocus
-                className="text-sm text-warm-text placeholder:text-warm-muted bg-transparent outline-none w-full"
-              />
+              {searchInput(handleQueryChange, { autoFocus: true })}
             </div>
-            {showResults && (
-              <SearchResults results={results} isLoading={isFetching} onSelect={handleSelect} />
-            )}
+            {searchDropdown}
           </div>
         )}
       </div>
@@ -186,18 +261,9 @@ const Header = () => {
         <div ref={desktopSearchRef} className="relative w-80">
           <div className="flex items-center gap-2 bg-white border border-warm-border rounded-lg px-3 py-2">
             <Search size={15} className="text-warm-muted shrink-0" />
-            <input
-              type="text"
-              value={query}
-              onChange={e => { setQuery(e.target.value); setOpen(true) }}
-              onFocus={() => setOpen(true)}
-              placeholder="Search books..."
-              className="text-sm text-warm-text placeholder:text-warm-muted bg-transparent outline-none w-full"
-            />
+            {searchInput(handleQueryChange)}
           </div>
-          {showResults && (
-            <SearchResults results={results} isLoading={isFetching} onSelect={handleSelect} />
-          )}
+          {searchDropdown}
         </div>
 
         <div ref={menuRef} className="relative">
