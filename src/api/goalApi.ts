@@ -1,26 +1,21 @@
 import type { ReadingGoal } from '@/types'
-import { mockGoals } from '@/data/mockData'
+import axiosClient from '@/lib/axiosClient'
 
 export const getGoals = async (): Promise<ReadingGoal[]> => {
-  // TODO: return axiosClient.get('/goals/').then(r => r.data)
-  return mockGoals
+  return axiosClient.get('/goals/me/').then(r => r.data)
 }
 
 export const getGoal = async (year: number): Promise<ReadingGoal> => {
-  // TODO: return axiosClient.get(`/goals/${year}/`).then(r => r.data)
-  const goal = mockGoals.find(g => g.year === year)
-  if (!goal) throw new Error(`No goal found for year ${year}`)
-  return goal
+  return axiosClient.get(`/goals/me/${year}/`).then(r => r.data)
 }
 
 export const setGoal = async (year: number, goal: number): Promise<ReadingGoal> => {
-  // TODO: return axiosClient.patch(`/goals/${year}/`, { goal }).then(r => r.data)
-  const existing = mockGoals.find(g => g.year === year)
-  if (existing) {
-    existing.goal = goal
-    return { ...existing }
+  try {
+    return await axiosClient.patch(`/goals/me/${year}/`, { goal }).then(r => r.data)
+  } catch (e: any) {
+    if (e.response?.status === 404) {
+      return axiosClient.post('/goals/me/', { year, goal }).then(r => r.data)
+    }
+    throw e
   }
-  const newGoal: ReadingGoal = { id: mockGoals.length + 1, user_id: 1, year, goal, books_finished: 0 }
-  mockGoals.push(newGoal)
-  return newGoal
 }

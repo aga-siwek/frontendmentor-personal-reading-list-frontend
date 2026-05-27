@@ -19,13 +19,20 @@ const getInitials = (name: string | null, email: string): string => {
 
 const SearchResults = ({
   results,
+  isLoading,
   onSelect,
 }: {
   results: ReturnType<typeof useSearchBooks>['data']
+  isLoading: boolean
   onSelect: (isbn: string) => void
 }) => (
   <div className="absolute top-full mt-1 w-full bg-white border border-warm-border rounded-lg shadow-lg z-50 overflow-hidden">
-    {!results || results.length === 0 ? (
+    {isLoading ? (
+      <div className="px-4 py-3">
+        <p className="text-sm text-warm-muted">Searching...</p>
+        <p className="text-xs text-warm-muted/70 mt-0.5">Fetching from Open Library — may take a moment</p>
+      </div>
+    ) : !results || results.length === 0 ? (
       <p className="px-4 py-3 text-sm text-warm-muted">No results found</p>
     ) : (
       <ul>
@@ -70,7 +77,7 @@ const Header = () => {
   const menuRef = useRef<HTMLDivElement>(null)
 
   const debouncedQuery = useDebounce(query, 500)
-  const { data: results = [] } = useSearchBooks(debouncedQuery)
+  const { data: results = [], isFetching } = useSearchBooks(debouncedQuery)
   const { data: user } = useCurrentUser()
 
   useEffect(() => {
@@ -168,7 +175,7 @@ const Header = () => {
               />
             </div>
             {showResults && (
-              <SearchResults results={results} onSelect={handleSelect} />
+              <SearchResults results={results} isLoading={isFetching} onSelect={handleSelect} />
             )}
           </div>
         )}
@@ -189,7 +196,7 @@ const Header = () => {
             />
           </div>
           {showResults && (
-            <SearchResults results={results} onSelect={handleSelect} />
+            <SearchResults results={results} isLoading={isFetching} onSelect={handleSelect} />
           )}
         </div>
 

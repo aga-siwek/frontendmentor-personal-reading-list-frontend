@@ -41,7 +41,7 @@ export interface BookWithUserBook {
   publisher: string | null
   source_api_id: string | null
   categories: Category[]
-  user_book: UserBook
+  user_book: UserBook | null
 }
 
 export interface ReadingGoal {

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Heart, CheckCircle2, BookmarkPlus } from 'lucide-react'
-import { useBook, useUpdateUserBook, useAddReadingProgress } from '@/queries/booksQueries'
+import { useBook, useUpdateUserBook, useAddReadingProgress, useAddBook } from '@/queries/booksQueries'
 import { useMyShelves, useAddBookToShelf, useRemoveBookFromShelf, useCreateShelf } from '@/queries/shelvesQueries'
 import { Skeleton } from '@/components/ui/skeleton'
 import BookProgress from '@/components/books/BookProgress'
@@ -227,6 +227,7 @@ const BookDetailPage = () => {
   const { data: book, isLoading } = useBook(isbn!)
   const { mutate: updateBook } = useUpdateUserBook()
   const { mutate: addProgress } = useAddReadingProgress()
+  const { mutate: addBook, isPending: isAdding } = useAddBook()
 
   const [showNotes, setShowNotes] = useState(false)
   const [noteText, setNoteText] = useState('')
@@ -244,7 +245,7 @@ const BookDetailPage = () => {
   const cover = book.cover.medium || book.cover.small
 
   const handleToggleNotes = () => {
-    if (!showNotes) setNoteText(user_book.notes ?? '')
+    if (!showNotes) setNoteText(user_book?.notes ?? '')
     setShowNotes(v => !v)
   }
 
@@ -294,33 +295,37 @@ const BookDetailPage = () => {
             <h2 className="text-xl min-[570px]:text-2xl md:text-3xl font-bold text-warm-text leading-snug">
               {book.title}
             </h2>
-            <div className="relative group shrink-0 mt-1">
-              <button
-                onClick={() => updateBook({ isbn: book.isbn, data: { is_favourite: !user_book.is_favourite } })}
-                aria-label={user_book.is_favourite ? 'Remove from favourites' : 'Add to favourites'}
-                className="p-2 -m-2 md:p-0 md:m-0"
-              >
-                <Heart
-                  size={26}
-                  className={`transition-colors ${
-                    user_book.is_favourite
-                      ? 'fill-brand text-brand'
-                      : 'text-warm-border hover:text-brand'
-                  }`}
-                />
-              </button>
-              <span className="pointer-events-none absolute right-0 top-7 text-xs bg-warm-text text-white rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                {user_book.is_favourite ? 'In favourites' : 'Add to favourites'}
-              </span>
-            </div>
+            {user_book && (
+              <div className="relative group shrink-0 mt-1">
+                <button
+                  onClick={() => updateBook({ isbn: book.isbn, data: { is_favourite: !user_book.is_favourite } })}
+                  aria-label={user_book.is_favourite ? 'Remove from favourites' : 'Add to favourites'}
+                  className="p-2 -m-2 md:p-0 md:m-0"
+                >
+                  <Heart
+                    size={26}
+                    className={`transition-colors ${
+                      user_book.is_favourite
+                        ? 'fill-brand text-brand'
+                        : 'text-warm-border hover:text-brand'
+                    }`}
+                  />
+                </button>
+                <span className="pointer-events-none absolute right-0 top-7 text-xs bg-warm-text text-white rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                  {user_book.is_favourite ? 'In favourites' : 'Add to favourites'}
+                </span>
+              </div>
+            )}
           </div>
           <p className="text-warm-muted mb-4">By {book.author}</p>
 
           {/* Badges */}
           <div className="flex flex-wrap gap-2 mb-5">
-            <span className="text-xs font-medium text-brand bg-brand-light rounded-full px-3 py-1">
-              {STATUS_LABEL[user_book.status] ?? user_book.status}
-            </span>
+            {user_book && (
+              <span className="text-xs font-medium text-brand bg-brand-light rounded-full px-3 py-1">
+                {STATUS_LABEL[user_book.status] ?? user_book.status}
+              </span>
+            )}
             {book.categories.map(cat => (
               <span key={cat.id} className="text-xs text-warm-muted bg-warm-border/60 rounded-full px-3 py-1">
                 {cat.name}
@@ -329,7 +334,7 @@ const BookDetailPage = () => {
           </div>
 
           {/* Progress — currently reading */}
-          {user_book.status === 'currently_reading' && (
+          {user_book?.status === 'currently_reading' && (
             <div className="mb-5 space-y-2">
               <BookProgress percentage={user_book.percentage} />
               <div className="flex items-center justify-between">
@@ -355,7 +360,7 @@ const BookDetailPage = () => {
           )}
 
           {/* Rating — finished */}
-          {user_book.status === 'finished' && (
+          {user_book?.status === 'finished' && (
             <div className="mb-5 space-y-1">
               <div className="flex items-center justify-between">
                 <p className="text-xs text-warm-muted">Your rating</p>
@@ -371,7 +376,16 @@ const BookDetailPage = () => {
 
           {/* Action buttons */}
           <div className="flex flex-wrap items-center gap-3">
-            {user_book.status === 'want_to_read' && (
+            {!user_book && (
+              <button
+                onClick={() => addBook({ isbn: book.isbn, status: 'want_to_read' })}
+                disabled={isAdding}
+                className="w-full min-[570px]:w-auto px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-xl hover:bg-brand-dark transition-colors disabled:opacity-60"
+              >
+                {isAdding ? 'Adding...' : 'Add to Library'}
+              </button>
+            )}
+            {user_book?.status === 'want_to_read' && (
               <button
                 onClick={() => updateBook({ isbn: book.isbn, data: { status: 'currently_reading', current_page: 0 } })}
                 className="w-full min-[570px]:w-auto px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-xl hover:bg-brand-dark transition-colors"
@@ -379,7 +393,7 @@ const BookDetailPage = () => {
                 Start Reading
               </button>
             )}
-            {user_book.status === 'finished' && (
+            {user_book?.status === 'finished' && (
               <button
                 onClick={() => updateBook({ isbn: book.isbn, data: { status: 'currently_reading', current_page: 0 } })}
                 className="w-full min-[570px]:w-auto px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-xl hover:bg-brand-dark transition-colors"
@@ -387,7 +401,7 @@ const BookDetailPage = () => {
                 Read Again
               </button>
             )}
-            <ShelfSelector isbn={book.isbn} />
+            {user_book && <ShelfSelector isbn={book.isbn} />}
           </div>
         </div>
       </div>
@@ -400,7 +414,7 @@ const BookDetailPage = () => {
       )}
 
       {/* ── NOTES ── */}
-      <div className="mb-8">
+      {user_book && <div className="mb-8">
         {showNotes ? (
           <div className="space-y-2">
             <textarea
@@ -434,7 +448,7 @@ const BookDetailPage = () => {
             )}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* ── METADATA ── */}
       <div className="border-t border-warm-border pt-5 flex flex-wrap gap-x-8 gap-y-3">
