@@ -93,6 +93,7 @@ export const useUpdateUserBook = () => {
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] })
+      queryClient.invalidateQueries({ queryKey: ['goal'] })
     },
   })
 }

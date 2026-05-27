@@ -62,7 +62,7 @@ const SearchResults = ({
     {isLoading ? (
       <div className="px-4 py-3">
         <p className="text-sm text-warm-muted">Searching...</p>
-        <p className="text-xs text-warm-muted/70 mt-0.5">Open Library is a free API — results may take up to 10 seconds</p>
+        <p className="text-xs text-warm-muted/70 mt-0.5">Open Library is a free API — results may take up to 25 seconds</p>
       </div>
     ) : results.length === 0 ? (
       <p className="px-4 py-3 text-sm text-warm-muted">No results found</p>
@@ -195,7 +195,7 @@ const Header = () => {
       {/* ===== MOBILE ===== */}
       <div className="md:hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-warm-border bg-main">
-          <button onClick={() => navigate('/')} className="flex items-center gap-2">
+          <button onClick={() => navigate('/shelf/all')} className="flex items-center gap-2">
             <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center shrink-0">
               <BookOpen size={14} className="text-white" />
             </div>

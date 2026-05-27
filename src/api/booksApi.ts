@@ -1,11 +1,14 @@
 import type { BookWithUserBook, BookStatus, UserBook, SearchResult, ShelfParam } from '@/types'
 import axiosClient from '@/lib/axiosClient'
 
+const sortByTitle = (books: BookWithUserBook[]) =>
+  [...books].sort((a, b) => a.title.localeCompare(b.title))
+
 export const getMyBooks = async (shelf?: ShelfParam): Promise<BookWithUserBook[]> => {
   const books: BookWithUserBook[] = await axiosClient.get('/books/me/').then(r => r.data)
-  if (!shelf || shelf === 'all') return books
-  if (shelf === 'favorites') return books.filter(b => b.user_book.is_favourite)
-  return books.filter(b => b.user_book.status === shelf)
+  if (!shelf || shelf === 'all') return sortByTitle(books)
+  if (shelf === 'favorites') return sortByTitle(books.filter(b => b.user_book.is_favourite))
+  return sortByTitle(books.filter(b => b.user_book.status === shelf))
 }
 
 export const getBook = async (isbn: string): Promise<BookWithUserBook> => {

@@ -17,7 +17,7 @@ const LoginPage = () => {
       {
         onSuccess: (data) => {
           localStorage.setItem('token', data.access_token)
-          navigate('/shelf/currently-reading')
+          navigate('/shelf/all')
         },
       }
     )
