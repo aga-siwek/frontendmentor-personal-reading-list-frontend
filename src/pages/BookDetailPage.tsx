@@ -36,6 +36,32 @@ const LoadingSkeleton = () => (
   </div>
 )
 
+const CoverImage = ({ cover, title }: { cover: string | null; title: string }) => {
+  const [loaded, setLoaded] = useState(false)
+
+  return (
+    <div className="flex justify-center min-[570px]:block min-[570px]:w-28 min-[570px]:shrink-0 min-[570px]:self-start md:w-44">
+      <div className="relative w-36 min-[570px]:w-full aspect-[2/3]">
+        {cover ? (
+          <>
+            {!loaded && <Skeleton className="absolute inset-0 rounded-xl" />}
+            <img
+              src={cover}
+              alt={title}
+              onLoad={() => setLoaded(true)}
+              className={`w-full h-full object-cover rounded-xl shadow-md transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+            />
+          </>
+        ) : (
+          <div className="w-full h-full rounded-xl bg-warm-border flex items-center justify-center text-warm-muted text-xs text-center px-2">
+            No cover
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 const SHELF_PAGE = 5
 
 const ShelfSelector = ({ isbn }: { isbn: string }) => {
@@ -276,21 +302,7 @@ const BookDetailPage = () => {
       <div className="flex flex-col min-[570px]:flex-row gap-5 md:gap-8 mb-8">
 
         {/* Cover */}
-        <div className="flex justify-center min-[570px]:block min-[570px]:w-28 min-[570px]:shrink-0 min-[570px]:self-start md:w-44">
-          <div className="w-36 min-[570px]:w-full">
-            {cover ? (
-              <img
-                src={cover}
-                alt={book.title}
-                className="w-full rounded-xl shadow-md object-cover"
-              />
-            ) : (
-              <div className="w-full aspect-[2/3] rounded-xl bg-warm-border flex items-center justify-center text-warm-muted text-xs text-center px-2">
-                No cover
-              </div>
-            )}
-          </div>
-        </div>
+        <CoverImage cover={cover} title={book.title} />
 
         {/* Title + meta + actions */}
         <div className="flex-1 min-w-0">

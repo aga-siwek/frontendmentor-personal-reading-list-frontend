@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { BookOpen, Bookmark, Check, Star, Library, Plus } from 'lucide-react'
 import NavItem from './NavItem'
 import ReadingGoal from './ReadingGoal'
@@ -36,14 +37,19 @@ const Sidebar = () => {
     favorites: allBooks.filter(b => b.user_book.is_favourite).length,
   }
 
+  const navigate = useNavigate()
+
   return (
     <div className="flex flex-col h-full bg-sidebar border-r border-warm-border">
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-warm-border">
+      <button
+        onClick={() => navigate('/shelf/all')}
+        className="flex items-center gap-2.5 px-5 py-4 border-b border-warm-border hover:bg-brand-light transition-colors"
+      >
         <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center shrink-0">
           <BookOpen size={16} className="text-white" />
         </div>
         <span className="font-semibold text-warm-text text-lg">Bookshelf</span>
-      </div>
+      </button>
 
       <div className="px-4 py-3 border-b border-warm-border">
         <div className="flex items-center gap-2 bg-white border border-warm-border rounded-lg px-3 py-2">
