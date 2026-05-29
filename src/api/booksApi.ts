@@ -7,8 +7,8 @@ const sortByTitle = (books: BookWithUserBook[]) =>
 export const getMyBooks = async (shelf?: ShelfParam): Promise<BookWithUserBook[]> => {
   const books: BookWithUserBook[] = await axiosClient.get('/books/me/').then(r => r.data)
   if (!shelf || shelf === 'all') return sortByTitle(books)
-  if (shelf === 'favorites') return sortByTitle(books.filter(b => b.user_book.is_favourite))
-  return sortByTitle(books.filter(b => b.user_book.status === shelf))
+  if (shelf === 'favorites') return sortByTitle(books.filter(b => b.user_book?.is_favourite))
+  return sortByTitle(books.filter(b => b.user_book?.status === shelf))
 }
 
 export const getBook = async (isbn: string): Promise<BookWithUserBook> => {

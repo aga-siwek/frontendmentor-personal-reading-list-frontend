@@ -31,10 +31,10 @@ const Sidebar = () => {
 
   const counts = {
     all: allBooks.length,
-    currently_reading: allBooks.filter(b => b.user_book.status === 'currently_reading').length,
-    want_to_read: allBooks.filter(b => b.user_book.status === 'want_to_read').length,
-    read: allBooks.filter(b => b.user_book.status === 'finished').length,
-    favorites: allBooks.filter(b => b.user_book.is_favourite).length,
+    currently_reading: allBooks.filter(b => b.user_book?.status === 'currently_reading').length,
+    want_to_read: allBooks.filter(b => b.user_book?.status === 'want_to_read').length,
+    read: allBooks.filter(b => b.user_book?.status === 'finished').length,
+    favorites: allBooks.filter(b => b.user_book?.is_favourite).length,
   }
 
   const navigate = useNavigate()

@@ -17,6 +17,7 @@ const BookCard = ({ book }: BookCardProps) => {
   const navigate = useNavigate()
   const { mutate: updateBook } = useUpdateUserBook()
   const { user_book } = book
+  if (!user_book) return null
 
   return (
     <article

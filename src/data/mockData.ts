@@ -4,6 +4,7 @@ export const mockUser: User = {
   user_id: 1,
   user_name: 'Agnieszka',
   user_email: 'agnieszka@example.com',
+  is_admin: false,
 }
 
 export const mockGoal: ReadingGoal = {

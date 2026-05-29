@@ -9,7 +9,7 @@ import {
   updateUserBook,
 } from '@/api/booksApi'
 
-export const useMyBooks = (status?: BookStatus) => {
+export const useMyBooks = (status?: ShelfParam) => {
   return useQuery({
     queryKey: ['books', status ?? 'all'],
     queryFn: () => getMyBooks(status),
@@ -74,12 +74,12 @@ export const useUpdateUserBook = () => {
       queryClient.setQueriesData<BookWithUserBook[]>(
         { queryKey: ['books'] },
         old => Array.isArray(old)
-          ? old.map(b => b.isbn === isbn ? { ...b, user_book: { ...b.user_book, ...data } } : b)
+          ? old.map(b => b.isbn === isbn ? { ...b, user_book: b.user_book ? { ...b.user_book, ...data } : b.user_book } : b)
           : old
       )
 
       queryClient.setQueryData<BookWithUserBook>(['books', isbn], old =>
-        old ? { ...old, user_book: { ...old.user_book, ...data } } : old
+        old ? { ...old, user_book: old.user_book ? { ...old.user_book, ...data } : old.user_book } : old
       )
 
       return { previousQueries }
