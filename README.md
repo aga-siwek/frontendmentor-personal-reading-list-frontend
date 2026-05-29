@@ -1,73 +1,65 @@
-# React + TypeScript + Vite
+# Personal Reading List — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack reading tracker built as a Frontend Mentor challenge. Users can manage their book collection, track reading progress, organize books into custom shelves, and set yearly reading goals.
 
-Currently, two official plugins are available:
+**Live demo:** https://frontendmentor-personal-reading-lis.vercel.app  
+**Backend repo:** https://github.com/aga-siwek/frontendmentor-personal-reading-list
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Authentication** — register, login, JWT-based session with auto-redirect
+- **Book search** — search Open Library by title/author with session-cached results
+- **Shelf management** — built-in shelves (All, Currently Reading, Want to Read, Read, Favorites) and custom user shelves
+- **Reading progress** — page tracking with percentage, notes, and star ratings
+- **Reading goal** — set and track a yearly book goal with live progress
+- **Responsive design** — mobile tab navigation, desktop sidebar layout
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+| Area | Technology |
+|---|---|
+| Framework | React 19 |
+| Language | TypeScript |
+| Build tool | Vite |
+| Routing | React Router v7 |
+| Server state | TanStack Query v5 |
+| HTTP client | Axios |
+| Styling | Tailwind CSS v4 |
+| Components | shadcn/ui (Base UI) |
+| Toasts | Sonner |
+| Icons | Lucide React |
+| Deployment | Vercel |
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Architecture highlights
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **Optimistic updates** — shelf and status changes are reflected instantly in the UI before the server confirms, with rollback on error
+- **Query-based state** — no global state manager; all server data lives in TanStack Query cache
+- **Session search history** — recent searches are cached in memory to avoid redundant API calls
+- **Type-safe API layer** — dedicated API modules with typed responses; all shared types in a single `types/index.ts`
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Project structure
+
+```
+src/
+├── api/          # Axios API calls (auth, books, shelves, goal)
+├── components/   # UI components (sidebar, book cards, layout)
+├── lib/          # Axios client, utilities
+├── pages/        # Route-level page components
+├── queries/      # TanStack Query hooks
+└── types/        # Shared TypeScript interfaces
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Running locally
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
+
+The app points to the production backend by default. To use a local backend, update `baseURL` in `src/lib/axiosClient.ts`.
+
+## Related
+
+- [Backend repository](https://github.com/aga-siwek/frontendmentor-personal-reading-list) — Python / Flask REST API with PostgreSQL
