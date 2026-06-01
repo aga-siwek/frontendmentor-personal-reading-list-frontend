@@ -62,7 +62,6 @@ const SearchResults = ({
     {isLoading ? (
       <div className="px-4 py-3">
         <p className="text-sm text-warm-muted">Searching...</p>
-        <p className="text-xs text-warm-muted/70 mt-0.5">Open Library is a free API — results may take up to 25 seconds</p>
       </div>
     ) : results.length === 0 ? (
       <p className="px-4 py-3 text-sm text-warm-muted">No results found</p>
